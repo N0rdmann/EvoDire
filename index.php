@@ -183,6 +183,21 @@ class DirectoryListing {
 
 	private $__sortOrder = 'asc';
 
+	//workarround using exec ls for >2gb files on x86, requires safe_mod=off
+	public function filesize_ls($path2) {
+    	$command = "/bin/ls -hl ".escapeshellarg($path2);
+   	$ret = trim(exec($command)); 
+    		if(!substr_count($ret, "ls:") && !substr_count($ret, "no file")) {
+      			$ret = str_replace("\t", " ", $ret);
+      			$ret = str_replace("  ", " ", $ret);
+      			$ret = str_replace("  ", " ", $ret);
+      			$ret = str_replace("  ", " ", $ret);
+      			$arr = explode(" ", $ret);
+      			$sizeLs = $arr[4];
+      		}
+	return $sizeLs;
+	}
+	
 	public function __construct() {
 		define('DS', '/');
 	}
@@ -681,7 +696,7 @@ class DirectoryListing {
 
 		$filePathInfo = pathinfo($filePath);
 
-		$fileSize = filesize($filePath);
+		$fileSize = $this->filesize_ls($filePath);
 
 		$fileModified = filemtime($filePath);
 
@@ -698,7 +713,7 @@ class DirectoryListing {
 			'dir' => $filePathInfo['dirname'],
 			'path' => $filePath,
 			'relativePath' => $relativePath,
-			'size' => $this->__formatSize($fileSize),
+			'size' => $fileSize,
 			'size_bytes' => $fileSize,
 			'modified' => $fileModified,
 			'type' => 'file',
@@ -830,17 +845,6 @@ class DirectoryListing {
 		die();
 	}
 
-	private function __formatSize($bytes) {
-		$units = array('B', 'KB', 'MB', 'GB', 'TB');
-
-		$bytes = max($bytes, 0);
-		$pow = floor(($bytes ? log($bytes) : 0) / log(1024));
-		$pow = min($pow, count($units) - 1);
-
-		$bytes /= pow(1024, $pow);
-
-		return round($bytes, 2) . ' ' . $units[$pow];
-	}
 
 }
 
